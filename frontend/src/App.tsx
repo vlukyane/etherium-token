@@ -10,7 +10,7 @@ function App() {
     <div className="App">
       <WalletWatcher />
       <header className="App-header">
-        <h1>Simple Token DApp</h1>
+        <h1>Simple Token DApp usage</h1>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         {!account ? (
           <button onClick={connect}>Connect Wallet</button>
@@ -22,4 +22,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;
