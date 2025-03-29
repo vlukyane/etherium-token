@@ -6,15 +6,10 @@ const path = require('path');
 async function main() {
   console.log("Starting deployment...");
 
-  // Check for required environment variables
-  if (!process.env.PRIVATE_KEY) {
-    throw new Error("PRIVATE_KEY not set in .env file");
-  }
-
   // Deploy SimpleToken
   console.log("\nDeploying SimpleToken...");
   const SimpleToken = await hre.ethers.getContractFactory("SimpleToken");
-  const token = await SimpleToken.deploy();
+  const token = await SimpleToken.deploy("Simple Token", "SMPL");
   await token.deployed();
   console.log("SimpleToken deployed to:", token.address);
 
@@ -27,14 +22,14 @@ async function main() {
 
   // Fund swap contract with tokens
   console.log("\nFunding swap contract with tokens...");
-  const fundAmount = ethers.utils.parseEther("1000");
+  const fundAmount = hre.ethers.utils.parseEther("1000");
   const tokenTx = await token.transfer(swap.address, fundAmount);
   await tokenTx.wait();
   console.log("Transferred 1000 tokens to swap contract");
 
   // Fund swap contract with ETH
   console.log("\nFunding swap contract with ETH...");
-  const ethAmount = ethers.utils.parseEther("10");
+  const ethAmount = hre.ethers.utils.parseEther("10");
   const swapContract = await hre.ethers.getContractFactory("TokenSwap");
   const swapInstance = await swapContract.attach(swap.address);
   const depositTx = await swapInstance.depositEth({ value: ethAmount });
@@ -46,35 +41,63 @@ async function main() {
   
   // Update root .env
   const rootEnvPath = path.join(__dirname, '../.env');
-  let rootEnvContent = fs.readFileSync(rootEnvPath, 'utf8');
-  rootEnvContent = rootEnvContent.replace(/TOKEN_ADDRESS=.*/, `TOKEN_ADDRESS=${token.address}`);
-  rootEnvContent = rootEnvContent.replace(/SWAP_CONTRACT_ADDRESS=.*/, `SWAP_CONTRACT_ADDRESS=${swap.address}`);
+  let rootEnvContent = fs.existsSync(rootEnvPath) ? fs.readFileSync(rootEnvPath, 'utf8') : '';
+  
+  // Add RPC URL if not exists
+  if (!rootEnvContent.includes("HARDHAT_RPC_URL")) {
+    rootEnvContent += "\nHARDHAT_RPC_URL=http://127.0.0.1:8545\n";
+  }
+  
+  // Update or add contract addresses
+  if (rootEnvContent.includes("HARDHAT_TOKEN_ADDRESS=")) {
+    rootEnvContent = rootEnvContent.replace(/HARDHAT_TOKEN_ADDRESS=.*/, `HARDHAT_TOKEN_ADDRESS=${token.address}`);
+  } else {
+    rootEnvContent += `\nHARDHAT_TOKEN_ADDRESS=${token.address}`;
+  }
+  
+  if (rootEnvContent.includes("HARDHAT_SWAP_ADDRESS=")) {
+    rootEnvContent = rootEnvContent.replace(/HARDHAT_SWAP_ADDRESS=.*/, `HARDHAT_SWAP_ADDRESS=${swap.address}`);
+  } else {
+    rootEnvContent += `\nHARDHAT_SWAP_ADDRESS=${swap.address}`;
+  }
+  
   fs.writeFileSync(rootEnvPath, rootEnvContent);
   console.log("Updated root .env");
 
   // Update frontend .env
   const frontendEnvPath = path.join(__dirname, '../frontend/.env');
-  let frontendEnvContent = `VITE_CONTRACT_ADDRESS=${token.address}\nVITE_SWAP_CONTRACT_ADDRESS=${swap.address}`;
+  let frontendEnvContent = fs.existsSync(frontendEnvPath) ? fs.readFileSync(frontendEnvPath, 'utf8') : '';
+  
+  // Update or add contract addresses
+  if (frontendEnvContent.includes("VITE_HARDHAT_TOKEN_ADDRESS=")) {
+    frontendEnvContent = frontendEnvContent.replace(/VITE_HARDHAT_TOKEN_ADDRESS=.*/, `VITE_HARDHAT_TOKEN_ADDRESS=${token.address}`);
+  } else {
+    frontendEnvContent += `\nVITE_HARDHAT_TOKEN_ADDRESS=${token.address}`;
+  }
+  
+  if (frontendEnvContent.includes("VITE_HARDHAT_SWAP_ADDRESS=")) {
+    frontendEnvContent = frontendEnvContent.replace(/VITE_HARDHAT_SWAP_ADDRESS=.*/, `VITE_HARDHAT_SWAP_ADDRESS=${swap.address}`);
+  } else {
+    frontendEnvContent += `\nVITE_HARDHAT_SWAP_ADDRESS=${swap.address}`;
+  }
+
+  // Add VITE_CONTRACT_ADDRESS for compatibility
+  if (frontendEnvContent.includes("VITE_CONTRACT_ADDRESS=")) {
+    frontendEnvContent = frontendEnvContent.replace(/VITE_CONTRACT_ADDRESS=.*/, `VITE_CONTRACT_ADDRESS=${token.address}`);
+  } else {
+    frontendEnvContent += `\nVITE_CONTRACT_ADDRESS=${token.address}`;
+  }
+  
   fs.writeFileSync(frontendEnvPath, frontendEnvContent);
   console.log("Updated frontend .env");
-
-  // Build frontend
-  console.log("\nBuilding frontend...");
-  try {
-    require('child_process').execSync('cd frontend && npm run build', { stdio: 'inherit' });
-    console.log("Frontend built successfully");
-  } catch (error) {
-    console.error("Error building frontend:", error);
-    process.exit(1);
-  }
 
   console.log("\nDeployment completed successfully!");
   console.log("\nContract addresses:");
   console.log("Token:", token.address);
   console.log("Swap:", swap.address);
   console.log("\nNext steps:");
-  console.log("1. Deploy frontend build to Vercel");
-  console.log("2. Test the deployed application");
+  console.log("1. Run 'npm run init' to initialize accounts");
+  console.log("2. Run 'npm run start:frontend' to start the frontend");
 }
 
 main()

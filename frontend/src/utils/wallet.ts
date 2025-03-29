@@ -1,6 +1,13 @@
 import { ethers } from 'ethers';
 import SimpleToken from '../artifacts/contracts/SimpleToken.sol/SimpleToken.json';
 
+// Add type declaration for import.meta.env
+declare global {
+  interface ImportMetaEnv {
+    VITE_CONTRACT_ADDRESS: string;
+  }
+}
+
 export const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
 
 if (!contractAddress) {
@@ -21,13 +28,12 @@ export const checkTokenAdded = async (): Promise<boolean> => {
   }
 
   try {
-    const tokens = await window.ethereum.request({
-      method: 'wallet_getTokens'
-    });
-
-    return tokens.some((token: any) => 
-      token.address.toLowerCase() === contractAddress.toLowerCase()
-    );
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const tokenContract = new ethers.Contract(contractAddress, SimpleToken.abi, provider);
+    
+    // Try to get the symbol - if it succeeds, the token is added
+    await tokenContract.symbol();
+    return true;
   } catch (error) {
     console.error('Error checking token:', error);
     return false;
@@ -53,7 +59,7 @@ export const addTokenToMetaMask = async (): Promise<boolean> => {
     
     await window.ethereum.request({
       method: 'wallet_watchAsset',
-      params: {
+      params: [{
         type: 'ERC20',
         options: {
           address: contractAddress,
@@ -61,7 +67,7 @@ export const addTokenToMetaMask = async (): Promise<boolean> => {
           decimals: decimals,
           image: 'https://your-token-image-url.com/token.png'
         }
-      }
+      }]
     });
     return true;
   } catch (error) {

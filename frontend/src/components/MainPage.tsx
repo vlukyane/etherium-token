@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { useWalletStore } from '../store/walletStore';
-import { addTokenToMetaMask } from '../utils/wallet';
+import { addTokenToMetaMask, getWalletState } from '../utils/wallet';
 import TokenSwap from '../artifacts/contracts/TokenSwap.sol/TokenSwap.json';
 
 export const MainPage = () => {
@@ -14,7 +14,7 @@ export const MainPage = () => {
   const [swapRate, setSwapRate] = useState<number>(0);
   const [ethBalance, setEthBalance] = useState<string>('0');
 
-  const swapContractAddress = import.meta.env.VITE_SWAP_CONTRACT_ADDRESS;
+  const swapContractAddress = import.meta.env.VITE_HARDHAT_SWAP_ADDRESS;
   if (!swapContractAddress) {
     throw new Error("Swap contract address not found in environment variables");
   }
@@ -51,6 +51,9 @@ export const MainPage = () => {
   const handleAddToken = async () => {
     try {
       await addTokenToMetaMask();
+      // Update wallet state to refresh tokenAdded status
+      const state = await getWalletState();
+      setWalletState(state);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -111,6 +114,14 @@ export const MainPage = () => {
       setIsSwapping(true);
       const swapContract = new ethers.Contract(swapContractAddress, TokenSwap.abi, contract.signer);
       
+      // Check if contract has enough tokens
+      const tokenAmount = ethers.utils.parseEther(calculateTokenAmount(ethAmount));
+      const contractTokenBalance = await contract.balanceOf(swapContractAddress);
+      
+      if (contractTokenBalance.lt(tokenAmount)) {
+        throw new Error("Contract doesn't have enough tokens for swap");
+      }
+      
       // Execute swap
       const swapTx = await swapContract.swapEthForTokens({
         value: ethers.utils.parseEther(ethAmount)
@@ -123,6 +134,7 @@ export const MainPage = () => {
       setWalletState({ balance: ethers.utils.formatEther(newBalance) });
       setEthBalance(ethers.utils.formatEther(newEthBalance));
     } catch (error) {
+      console.error('Swap error:', error);
       setError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setIsSwapping(false);
