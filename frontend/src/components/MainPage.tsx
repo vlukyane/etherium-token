@@ -24,8 +24,9 @@ export const MainPage = () => {
       try {
         if (!contract) return;
         const swapContract = new ethers.Contract(swapContractAddress, TokenSwap.abi, contract.signer);
-        const rate = await swapContract.swapRate();
-        setSwapRate(rate.toNumber());
+        const rate = await swapContract.getCurrentRate();
+        console.log(rate.toNumber() / 10000);
+        setSwapRate(rate.toNumber() / 10000); // Convert from PRECISION to actual rate
       } catch (error) {
         console.error('Error fetching swap rate:', error);
       }
@@ -144,14 +145,14 @@ export const MainPage = () => {
   // Calculate ETH amount for token swap
   const calculateEthAmount = (tokenAmount: string) => {
     if (!tokenAmount || !swapRate) return '0';
-    const ethAmount = Number(tokenAmount) / swapRate;
+    const ethAmount = Number(tokenAmount) / (1 / swapRate);
     return ethAmount.toFixed(4);
   };
 
   // Calculate token amount for ETH swap
   const calculateTokenAmount = (ethAmount: string) => {
     if (!ethAmount || !swapRate) return '0';
-    const tokenAmount = Number(ethAmount) * swapRate;
+    const tokenAmount = Number(ethAmount) * (1 / swapRate);
     return tokenAmount.toFixed(4);
   };
 
@@ -171,8 +172,10 @@ export const MainPage = () => {
   return (
     <div>
       <p>Connected Account: {account}</p>
-      <p>Balance: {balance} SMPL</p>
-      <p>ETH Balance: {ethBalance} ETH</p>
+      <p>Balance: {Number(balance).toFixed(4)} SMPL</p>
+      <p>ETH Balance: {Number(ethBalance).toFixed(4)} ETH</p>
+      <p>Current rate: 1 SMPL = {(1 / swapRate).toFixed(4)} ETH</p>
+    
       {!tokenAdded && (
         <button 
           onClick={handleAddToken}
@@ -212,16 +215,12 @@ export const MainPage = () => {
 
       <div style={{ marginBottom: '20px' }}>
         <h3>Swap Tokens for ETH</h3>
-        <p>Current rate: 1 ETH = {swapRate} SMPL</p>
         <input
           type="number"
           placeholder="Token Amount"
           value={swapAmount}
           onChange={(e) => setSwapAmount(e.target.value)}
         />
-        {swapAmount && (
-          <p>You will receive: {calculateEthAmount(swapAmount)} ETH</p>
-        )}
         <button 
           onClick={handleSwapTokensForEth}
           disabled={isSwapping || !isValidAmount(swapAmount) || !hasEnoughTokens(swapAmount)}
@@ -235,16 +234,12 @@ export const MainPage = () => {
 
       <div style={{ marginBottom: '20px' }}>
         <h3>Swap ETH for Tokens</h3>
-        <p>Current rate: 1 ETH = {swapRate} SMPL</p>
         <input
           type="number"
           placeholder="ETH Amount"
           value={ethAmount}
           onChange={(e) => setEthAmount(e.target.value)}
         />
-        {ethAmount && (
-          <p>You will receive: {calculateTokenAmount(ethAmount)} SMPL</p>
-        )}
         <button 
           onClick={handleSwapEthForTokens}
           disabled={isSwapping || !isValidAmount(ethAmount) || !hasEnoughEth(ethAmount)}

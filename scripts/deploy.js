@@ -20,12 +20,25 @@ async function main() {
   await swap.deployed();
   console.log("TokenSwap deployed to:", swap.address);
 
+  // Get deployer account
+  const [deployer] = await hre.ethers.getSigners();
+  console.log("\nDeployer address:", deployer.address);
+
   // Fund swap contract with tokens
   console.log("\nFunding swap contract with tokens...");
-  const fundAmount = hre.ethers.utils.parseEther("1000");
+  const fundAmount = hre.ethers.utils.parseEther("1000000"); // 1 million tokens
+  
+  // First mint tokens to deployer
+  console.log("Minting tokens to deployer...");
+  const mintTx = await token.mint(deployer.address, fundAmount);
+  await mintTx.wait();
+  console.log("Minted 1,000,000 tokens to deployer");
+
+  // Then transfer tokens to swap contract
+  console.log("Transferring tokens to swap contract...");
   const tokenTx = await token.transfer(swap.address, fundAmount);
   await tokenTx.wait();
-  console.log("Transferred 1000 tokens to swap contract");
+  console.log("Transferred 1,000,000 tokens to swap contract");
 
   // Fund swap contract with ETH
   console.log("\nFunding swap contract with ETH...");
