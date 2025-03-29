@@ -20,7 +20,7 @@ async function main() {
   // Deploy SimpleToken
   console.log("\nDeploying SimpleToken...");
   const SimpleToken = await hre.ethers.getContractFactory("SimpleToken");
-  const token = await SimpleToken.deploy();
+  const token = await SimpleToken.deploy("SimpleToken", "SMPL");
   await token.deployed();
   console.log("SimpleToken deployed to:", token.address);
 
