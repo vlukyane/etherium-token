@@ -1,23 +1,153 @@
-# Ethereum Token Swap DApp
+# Ethereum Token Project
 
-A decentralized application for swapping ERC20 tokens with ETH on the Ethereum network. The project includes smart contracts for token creation and swapping, along with a React frontend for user interaction.
+## Overview
+This project implements a simple ERC20 token with a swap contract that allows users to exchange ETH for tokens and vice versa. The swap contract features dynamic pricing and administrative controls.
 
 ## Features
+- ERC20 Token (SimpleToken)
+- Token Swap Contract with:
+  - Dynamic pricing based on token/ETH ratio
+  - Initial price: 0.01 ETH per token
+  - Price bounds: 0.005-0.02 ETH per token
+  - Initial liquidity: 1,000,000 tokens
+  - Administrative controls for managing liquidity
 
-### Smart Contracts
-- ERC20 Token with standard functionality
-- Token Swap contract for exchanging tokens with ETH
-- Fixed exchange rate (1 ETH = 100 tokens)
-- Manual liquidity provision through contract funding
-- Secure transaction handling
+## Contract Details
 
-### Frontend Application
-- MetaMask wallet integration
-- Real-time balance checking
-- Token to ETH swapping
-- ETH to Token swapping
-- Transaction history
-- Responsive design
+### SimpleToken
+- Standard ERC20 token implementation
+- Initial supply: 1,000,000 tokens
+- Decimals: 18
+
+### TokenSwap
+The swap contract provides the following features:
+
+#### Dynamic Pricing
+- Initial rate: 1 ETH = 100 tokens (0.01 ETH per token)
+- Price adjusts based on the token/ETH ratio in the contract
+- Price bounds:
+  - Minimum: 0.02 ETH per token
+  - Maximum: 0.005 ETH per token
+- Price calculation: `rate = (tokenBalance * PRECISION) / ethBalance`
+
+#### Administrative Functions
+1. **Managing Liquidity**
+   - `depositTokens(uint256 _amount)`: Add tokens to the contract
+   - `withdrawTokens(uint256 _amount)`: Remove tokens from the contract
+   - `depositEth()`: Add ETH to the contract
+   - `withdrawEth(uint256 _amount)`: Remove ETH from the contract
+
+2. **Price Controls**
+   - `setRateBounds(uint256 _minRate, uint256 _maxRate)`: Set new price bounds
+   - `getCurrentRate()`: View current swap rate
+
+#### User Functions
+1. **Swapping ETH for Tokens**
+   - Send ETH to `swapEthForTokens()`
+   - Receive tokens based on current rate
+
+2. **Swapping Tokens for ETH**
+   - Approve tokens for swap contract
+   - Call `swapTokensForEth(uint256 _tokenAmount)`
+   - Receive ETH based on current rate
+
+## Setup and Deployment
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Create environment files:
+```bash
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+```
+
+3. Deploy contracts:
+```bash
+npm run deploy
+```
+This will:
+- Deploy SimpleToken
+- Deploy TokenSwap
+- Fund TokenSwap with 1,000,000 tokens
+- Fund TokenSwap with 10 ETH
+- Update environment files with contract addresses
+
+4. Initialize accounts:
+```bash
+npm run init
+```
+
+5. Start frontend:
+```bash
+npm run start:frontend
+```
+
+## Admin Guide
+
+### Managing Liquidity
+
+1. **Adding Tokens**
+   ```javascript
+   // Approve tokens first
+   await token.approve(swapAddress, amount);
+   // Then deposit
+   await swap.depositTokens(amount);
+   ```
+
+2. **Adding ETH**
+   ```javascript
+   await swap.depositEth({ value: ethers.utils.parseEther("10") });
+   ```
+
+3. **Withdrawing Tokens**
+   ```javascript
+   await swap.withdrawTokens(amount);
+   ```
+
+4. **Withdrawing ETH**
+   ```javascript
+   await swap.withdrawEth(amount);
+   ```
+
+### Managing Price Bounds
+
+1. **View Current Rate**
+   ```javascript
+   const rate = await swap.getCurrentRate();
+   console.log("Current rate:", rate);
+   ```
+
+2. **Set New Price Bounds**
+   ```javascript
+   // Example: Set bounds to 0.01-0.03 ETH per token
+   await swap.setRateBounds(50, 300);
+   ```
+
+## User Guide
+
+### Swapping ETH for Tokens
+
+1. Enter the amount of ETH you want to swap
+2. Click "Swap ETH for Tokens"
+3. Confirm the transaction in MetaMask
+4. Receive tokens at the current rate
+
+### Swapping Tokens for ETH
+
+1. Enter the amount of tokens you want to swap
+2. Approve the swap contract to spend your tokens
+3. Click "Swap Tokens for ETH"
+4. Confirm the transaction in MetaMask
+5. Receive ETH at the current rate
+
+## Notes
+- All prices are calculated with 4 decimal precision (PRECISION = 10000)
+- The contract maintains a minimum ETH balance to ensure proper rate calculation
+- Price bounds can be adjusted by the contract owner
+- The contract owner can add or remove liquidity at any time
 
 ## Prerequisites
 

@@ -7,7 +7,10 @@ interface WalletStore extends WalletState {
   disconnect: () => Promise<void>;
   error: string | null;
   setError: (error: string | null) => void;
+  updateBalance: () => Promise<void>;
 }
+
+const STORAGE_KEY = 'wallet_connected';
 
 export const useWalletStore = create<WalletStore>((set: any) => ({
   account: null,
@@ -21,6 +24,7 @@ export const useWalletStore = create<WalletStore>((set: any) => ({
     try {
       const state = await getWalletState();
       set(state);
+      localStorage.setItem(STORAGE_KEY, 'true');
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
@@ -36,9 +40,18 @@ export const useWalletStore = create<WalletStore>((set: any) => ({
         tokenAdded: false,
         error: null
       });
+      localStorage.removeItem(STORAGE_KEY);
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
   },
-  setError: (error) => set({ error })
+  setError: (error) => set({ error }),
+  updateBalance: async () => {
+    try {
+      const state = await getWalletState();
+      set({ balance: state.balance });
+    } catch (error) {
+      console.error('Error updating balance:', error);
+    }
+  }
 })); 

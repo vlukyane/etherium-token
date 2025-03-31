@@ -3,9 +3,10 @@ import { ethers } from 'ethers';
 import { useWalletStore } from '../store/walletStore';
 import { addTokenToMetaMask, getWalletState } from '../utils/wallet';
 import TokenSwap from '../artifacts/contracts/TokenSwap.sol/TokenSwap.json';
+import { StakingPage } from './Staking/StakingPage';
 
 export const MainPage = () => {
-  const { account, balance, contract, disconnect, tokenAdded, setError, setWalletState } = useWalletStore();
+  const { account, balance, contract, disconnect, tokenAdded, setError, setWalletState, updateBalance } = useWalletStore();
   const [recipient, setRecipient] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [swapAmount, setSwapAmount] = useState<string>('');
@@ -68,8 +69,7 @@ export const MainPage = () => {
           ethers.utils.parseEther(amount)
         );
         await tx.wait();
-        const newBalance = await contract.balanceOf(account);
-        setWalletState({ balance: ethers.utils.formatEther(newBalance) });
+        await updateBalance();
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unknown error');
@@ -97,9 +97,8 @@ export const MainPage = () => {
       await swapTx.wait();
 
       // Update balances
-      const newBalance = await contract.balanceOf(account);
+      await updateBalance();
       const newEthBalance = await contract.signer.getBalance();
-      setWalletState({ balance: ethers.utils.formatEther(newBalance) });
       setEthBalance(ethers.utils.formatEther(newEthBalance));
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unknown error');
@@ -130,9 +129,8 @@ export const MainPage = () => {
       await swapTx.wait();
 
       // Update balances
-      const newBalance = await contract.balanceOf(account);
+      await updateBalance();
       const newEthBalance = await contract.signer.getBalance();
-      setWalletState({ balance: ethers.utils.formatEther(newBalance) });
       setEthBalance(ethers.utils.formatEther(newEthBalance));
     } catch (error) {
       console.error('Swap error:', error);
@@ -257,6 +255,8 @@ export const MainPage = () => {
       >
         Disconnect
       </button>
+
+      <StakingPage />
     </div>
   );
 }; 
